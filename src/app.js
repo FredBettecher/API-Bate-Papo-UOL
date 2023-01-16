@@ -97,7 +97,7 @@ app.post(('/messages'), async (req, res) => {
             time: date
         });
 
-        res.sendStatus(201);
+        return res.sendStatus(201);
 
     } catch(err) {
         res.status(500).send(err.message);
@@ -131,8 +131,22 @@ app.get(('/messages'), async(req, res) => {
     }
 });
 
-app.post(('/status'), (req, res) => {
+app.post(('/status'), async(req, res) => {
+    const { user } = req.headers;
 
+    try {
+        const resp = db.collection('participants').findOne({ user });
+
+        if(!resp) {
+            return res.sendStatus(404);
+        } else {
+            await db.collection('participants').updateOne({name: user}, {$set: { lastStatus: date } });
+            return res.sendStatus(200);
+        }
+
+    } catch(err) {
+        res.status(500).send(err.message);
+    }
 });
 
 app.listen(process.env.PORT, () => console.log("Online at port", process.env.PORT));
