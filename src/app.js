@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { MongoClient } from "mongodb";
 import joi from 'joi';
+import dayjs from "dayjs";
 
 dotenv.config();
 
@@ -26,12 +27,13 @@ const participantSchema = joi.object({
 });
 
 const messageSchema = joi.object({
-    from: joi.string().required(),
     to: joi.string().required(),
     text: joi.string().required(),
-    type: joi.string().required(),
-    time: joi.string().required()
+    type: joi.string().required().valid('message', 'private_message'),
+    time: joi.date()
 });
+
+const date = dayjs();
 
 app.post(('/participants'), async(req, res) => {
     const { name } = req.body;
@@ -42,7 +44,7 @@ app.post(('/participants'), async(req, res) => {
 
         if(resp) {
             return res.status(409).send("Nome de usuário já cadastrado.");
-        }else if(nameValidation.error) {
+        } else if(nameValidation.error) {
             return res.status(422).send(nameValidation.error.details);
         }
     
@@ -50,14 +52,20 @@ app.post(('/participants'), async(req, res) => {
             name,
             lastStatus: Date.now()
         });
-        
-        return res.sendStatus(201);
+
+        await db.collection('login').insertOne({
+            from: name,
+            to: 'Todos',
+            text: 'entra na sala...',
+            type: 'status',
+            time: `${date.hour}:${date.minute}:${date.second}`
+        })
+
+        res.sendStatus(201);
 
     } catch(err) {
-        console.log(err)
         res.status(500).send(err.message);
     }
-    
 });
 
 app.get(('/participants'), (req, res) => {
@@ -66,6 +74,46 @@ app.get(('/participants'), (req, res) => {
     })
 });
 
+app.post(('/messages'), async (req, res) => {
+    const { user } = req.headers;
+    const { from, to, text, type } = req.body;
+    const messageValidation = messageSchema.validate({ to, text, type });
 
+    try {
+        const resp = await db.collection('participants').findOne({ from });
+
+        if(messageValidation.error) {
+            return res.status(422).send('Algo de errado não está certo.')
+        } else if(!resp) {
+            return res.status(422).send('Nome de usuário não encontrado.')
+        }
+
+        await db.collection('messages').insertOne({
+            from: user,
+            to,
+            text,
+            type,
+            time: `${date.hour}:${date.minute}:${date.second}`
+        });
+
+    } catch(err) {
+        res.status(500).send(err.message);
+    }
+});
+
+app.get(('/messages'), (req, res) => {
+    const { limit } = req.query;
+    
+    if(parseInt(limit) > 0) {
+        db.collection('messages').find().toArray().then(messagesList => {
+            const lastMessages = messagesList.slice(parseInt(-limit)).reverse();
+            return res.send(lastMessages);
+        });
+    } else {
+        db.collection('messages').find().toArray().then(messagesList => {
+            return res.send(messagesList);
+        });
+    }
+});
 
 app.listen(process.env.PORT, () => console.log("Online at port", process.env.PORT));
