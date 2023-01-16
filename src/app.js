@@ -81,11 +81,13 @@ app.post(('/messages'), async (req, res) => {
     const messageValidation = messageSchema.validate({ to, text, type });
 
     try {
-        const resp = await db.collection('participants').findOne({ from });
+        const resp = await db.collection('participants').findOne({ name: user });
 
         if(messageValidation.error) {
             return res.status(422).send('Algo de errado não está certo.')
-        } else if(!resp) {
+        }
+        
+        if(!resp) {
             return res.status(422).send('Nome de usuário não encontrado.')
         }
 
@@ -96,7 +98,7 @@ app.post(('/messages'), async (req, res) => {
             type,
             time: date
         });
-
+        
         return res.sendStatus(201);
 
     } catch(err) {
