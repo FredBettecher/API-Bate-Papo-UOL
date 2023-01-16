@@ -53,7 +53,7 @@ app.post(('/participants'), async(req, res) => {
             lastStatus: Date.now()
         });
 
-        await db.collection('login').insertOne({
+        await db.collection('messages').insertOne({
             from: name,
             to: 'Todos',
             text: 'entra na sala...',
@@ -101,17 +101,29 @@ app.post(('/messages'), async (req, res) => {
     }
 });
 
-app.get(('/messages'), (req, res) => {
+app.get(('/messages'), async(req, res) => {
     const { limit } = req.query;
+    const { user } = req.headers;
     
     if(parseInt(limit) > 0) {
         db.collection('messages').find().toArray().then(messagesList => {
-            const lastMessages = messagesList.slice(parseInt(-limit)).reverse();
-            return res.send(lastMessages);
+            const messages = [];
+            messagesList.map(message => {
+                if(message.from === user || message.to === user || message.type === 'message' || message.type === 'status') {
+                    messages.push(message);
+                }
+            });
+            return res.send(messages.slice(parseInt(-limit)).reverse());
         });
     } else {
         db.collection('messages').find().toArray().then(messagesList => {
-            return res.send(messagesList);
+            const messages = [];
+            messagesList.map(message => {
+                if(message.from === user || message.to === user || message.type === 'message' || message.type === 'status') {
+                    messages.push(message);
+                }
+            });
+            return res.send(messages.reverse());
         });
     }
 });
