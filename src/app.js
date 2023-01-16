@@ -88,7 +88,7 @@ app.post(('/messages'), async (req, res) => {
         }
         
         if(!resp) {
-            return res.status(422).send('Nome de usuário não encontrado.')
+            return res.status(404).send('Nome de usuário não encontrado.')
         }
 
         await db.collection('messages').insertOne({
