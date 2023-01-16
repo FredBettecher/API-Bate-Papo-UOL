@@ -23,17 +23,18 @@ try {
 
 const participantSchema = joi.object({
     name: joi.string().required(),
-    lastStatus: joi.number()
+    lastStatus: joi.string()
 });
 
 const messageSchema = joi.object({
     to: joi.string().required(),
     text: joi.string().required(),
     type: joi.string().required().valid('message', 'private_message'),
-    time: joi.date()
+    time: joi.string()
 });
 
-const date = dayjs();
+let dateNow = Date.now()
+let date = dayjs(dateNow).format('HH:mm:ss');
 
 app.post(('/participants'), async(req, res) => {
     const { name } = req.body;
@@ -50,7 +51,7 @@ app.post(('/participants'), async(req, res) => {
     
         await db.collection('participants').insertOne({
             name,
-            lastStatus: Date.now()
+            lastStatus: date
         });
 
         await db.collection('messages').insertOne({
@@ -58,7 +59,7 @@ app.post(('/participants'), async(req, res) => {
             to: 'Todos',
             text: 'entra na sala...',
             type: 'status',
-            time: `${date.hour}:${date.minute}:${date.second}`
+            time: date
         })
 
         res.sendStatus(201);
@@ -93,7 +94,7 @@ app.post(('/messages'), async (req, res) => {
             to,
             text,
             type,
-            time: `${date.hour}:${date.minute}:${date.second}`
+            time: date
         });
 
     } catch(err) {
@@ -126,6 +127,10 @@ app.get(('/messages'), async(req, res) => {
             return res.send(messages.reverse());
         });
     }
+});
+
+app.post(('/status'), (req, res) => {
+
 });
 
 app.listen(process.env.PORT, () => console.log("Online at port", process.env.PORT));
