@@ -34,26 +34,24 @@ const messageSchema = joi.object({
 });
 
 app.post(('/participants'), async(req, res) => {
-    const name = req.body;
-    const nameValidation = participantSchema.validate(name);
+    const { name } = req.body;
+    const nameValidation = participantSchema.validate({ name });
 
     try {
-        const resp = await db.collection('participants').findOne({ name: name });
+        const resp = await db.collection('participants').findOne({ name });
 
         if(resp) {
             return res.status(409).send("Nome de usuário já cadastrado.");
+        }else if(nameValidation.error) {
+            return res.status(422).send(nameValidation.error.details);
         }
-
-        if(!nameValidation) {
-            return res.status(422).send("Nome de usuário inválido.");
-        }
-
-        const participant = await db.collection('participants').insertOne({
-            name: name,
+    
+        await db.collection('participants').insertOne({
+            name,
             lastStatus: Date.now()
         });
-
-        res.sendStatus(201);
+        
+        return res.sendStatus(201);
 
     } catch(err) {
         console.log(err)
@@ -61,5 +59,13 @@ app.post(('/participants'), async(req, res) => {
     }
     
 });
+
+app.get(('/participants'), (req, res) => {
+    db.collection('participants').find().toArray().then(participantsList => {
+        return res.send(participantsList);
+    })
+});
+
+
 
 app.listen(process.env.PORT, () => console.log("Online at port", process.env.PORT));
