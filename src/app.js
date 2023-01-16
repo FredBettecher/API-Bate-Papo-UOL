@@ -97,6 +97,8 @@ app.post(('/messages'), async (req, res) => {
             time: date
         });
 
+        res.sendStatus(201);
+
     } catch(err) {
         res.status(500).send(err.message);
     }
