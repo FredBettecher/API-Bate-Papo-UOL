@@ -112,7 +112,7 @@ app.get(('/messages'), async(req, res) => {
     const { user } = req.headers;
 
     try {
-        if(Number({ limit }) <= 0 || typeof({ limit }) === 'string') {
+        if(limit <= 0 || typeof({ limit }) === 'string') {
             return res.sendStatus(422);
         } else if(Number(limit) > 0) {
             await db.collection('messages').find().toArray().then(messagesList => {
@@ -147,14 +147,18 @@ app.post(('/status'), async(req, res) => {
     const dateNow = Date.now();
 
     try {
-        const resp = db.collection('participants').findOne({ name: user });
+        const participants = await db.collection('participants').find().toArray();
 
-        if(!resp) {
-            return res.sendStatus(404);
-        } else {
-            await db.collection('participants').updateOne({name: user}, {$set: { lastStatus: dateNow } });
-            return res.sendStatus(200);
+        if(participants.length > 0) {
+            for(let i = 0; i<participants.length; i++) {
+                if(participants[i].name.includes(user)){
+                    await db.collection('participants').updateOne({name: user}, {$set: { lastStatus: dateNow } });
+                    return res.sendStatus(200);
+                }
+            }
         }
+        
+        return res.status(404).send("Nome de usuário não encontrado.");
 
     } catch(err) {
         res.status(500).send(err.message);
