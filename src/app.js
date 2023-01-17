@@ -110,9 +110,13 @@ app.post(('/messages'), async (req, res) => {
 app.get(('/messages'), async(req, res) => {
     const { limit } = req.query;
     const { user } = req.headers;
+    const limitSchema = joi.object({
+        limit: joi.number()
+    });
+    const limitValidation = limitSchema.validate({ limit });
 
     try {
-        if(limit <= 0 || typeof({ limit }) === 'string') {
+        if(limit <= 0 || limitValidation.error) {
             return res.sendStatus(422);
         } else if(Number(limit) > 0) {
             await db.collection('messages').find().toArray().then(messagesList => {
@@ -122,7 +126,7 @@ app.get(('/messages'), async(req, res) => {
                         messages.push(message);
                     }
                 });
-                return res.send(messages.slice(parseInt(-limit)).reverse());
+                return res.send(messages.slice(Number(-limit)).reverse());
             });
         } else {
             await db.collection('messages').find().toArray().then(messagesList => {
